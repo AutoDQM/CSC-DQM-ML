@@ -1,5 +1,5 @@
 from __future__ import division, print_function, absolute_import
-import sys, os
+import sys, os, psutil
 try:
     sys.path.remove('/home/users/bemarsh/.local/lib/python2.7/site-packages/matplotlib-1.4.3-py2.7-linux-x86_64.egg')
 except:
@@ -13,17 +13,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 import utils
 from histDefs import histDefs as hists
+from DQMAutoEncoder import DQMAutoEncoder
 
 indir = "/nfs-6/userdata/bemarsh/CSC_DQM/Run2017/SingleMuon/"
 
 min_train_entries = 10000
 learning_rate = 0.01
-num_steps=5000
-init_param_widths = [0.1, 0.5, 0.7, 0.7, 1.0, 1.0, 1.0]
+num_iters=5000
+# init_param_widths = [0.1, 0.5, 0.7, 0.7, 1.0, 1.0, 1.0]
+init_param_widths = [1.0]
 
 display_step = 1000
 
 # hists = [("recHits","hRHTimingAnodem22")]
+# hists = [("Digis", "hWireTBin_m11b")]
+
+process = psutil.Process(os.getpid())
+print("Mem usage start:", process.memory_info().rss/1e6)
 
 for dname,hname in hists:
     print("Training {0}/{1}".format(dname, hname))
@@ -36,6 +42,8 @@ for dname,hname in hists:
     else:
         harray, good_rows, runs, n_entries = pickle.load(open(pkl_name, 'rb'))
 
+    print("Mem usage after harray load:", process.memory_info().rss/1e6)
+
     nbins = good_rows.size
     n_samples = harray.shape[0]
 
@@ -47,93 +55,39 @@ for dname,hname in hists:
 
     tf.set_random_seed(int(time.time()))
     
-    hidden_layers = [nbins//2, 3]
-    
+    layer_sizes = [nbins, nbins//2, 3]
+
     minloss = 999.
     mindict = {}
     for width in init_param_widths:
         print("Trying width", width)
-        # tf Graph input (only pictures)
-        X = tf.placeholder("float", [None, nbins])
 
-        layers = [nbins] + hidden_layers
-        weights = {}
-        for i in range(len(layers)-1):
-            weights["encoder_h"+str(i)] = tf.Variable(tf.random_normal([layers[i], layers[i+1]], stddev=width))
-            weights["decoder_h"+str(i)] = tf.Variable(tf.random_normal([layers[-i-1], layers[-i-2]], stddev=width))
-            
-        biases = {}
-        for i in range(len(layers)-1):
-            biases["encoder_b"+str(i)] = tf.Variable(tf.random_normal([layers[i+1]], stddev=width))
-            biases["decoder_b"+str(i)] = tf.Variable(tf.random_normal([layers[-i-2]], stddev=width))
+        tf.reset_default_graph()
 
-        # Building the encoder
-        def encoder(x):
-            ls = [x]
-            for i in range(len(layers)-1):
-                ls.append(tf.nn.sigmoid(tf.add(tf.matmul(ls[i], weights['encoder_h'+str(i)]),
-                                               biases['encoder_b'+str(i)])))
-            return ls[-1]
-
-        # Building the decoder
-        def decoder(x):
-            ls = [x]
-            for i in range(len(layers)-2):
-                ls.append(tf.nn.sigmoid(tf.add(tf.matmul(ls[i], weights['decoder_h'+str(i)]),
-                                               biases['decoder_b'+str(i)])))
-                ls.append(tf.nn.sigmoid(tf.add(tf.matmul(ls[len(layers)-2], weights['decoder_h'+str(len(layers)-2)]),
-                                               biases['decoder_b'+str(len(layers)-2)])))
-            return ls[-1]
-
-        # Construct model
-        encoder_op = encoder(X)
-        decoder_op = decoder(encoder_op)
-        
-        # Prediction
-        y_pred = decoder_op
-        # Targets (Labels) are the input data.
-        y_true = X
-    
-        # Define loss and optimizer, minimize the squared error
-        loss = tf.reduce_mean(tf.pow(y_true - y_pred, 2))
-        optimizer = tf.train.RMSPropOptimizer(learning_rate).minimize(loss)
-
-        # Initialize the variables (i.e. assign their default value)
-        init = tf.global_variables_initializer()
+        ae = DQMAutoEncoder(layer_sizes, learning_rate, num_iters, width, None)
 
         # Start Training
         # Start a new TF session
         with tf.Session() as sess:
-            
-            sess.run(init)
 
-            for i in range(1, num_steps+1):
-
-                # nsamples is small enough to just train over entire dataset each step
-                batch_x = harray
-            
-                # do the training step
-                _, l = sess.run([optimizer, loss], feed_dict={X:batch_x})
-
-                # Display logs per step
-                if i % display_step == 0 or i == 1:
-                    print('Step %i: Minibatch Loss: %f' % (i, l))
+            loss = ae.train(sess, harray, 200, display_step)
 
             weights_asnp = {}
             biases_asnp = {}
 
-            for key in weights:
-                weights_asnp[key] = sess.run(weights[key])
-            for key in biases:
-                biases_asnp[key] = sess.run(biases[key])
+            for key in ae.weights:
+                weights_asnp[key] = sess.run(ae.weights[key])
+            for key in ae.biases:
+                biases_asnp[key] = sess.run(ae.biases[key])
 
-            reconstructed = sess.run(decoder_op, feed_dict={X: harray})
+            reconstructed = ae.run(sess, harray)
+
             sses = np.sqrt(np.sum((reconstructed-harray)**2, axis=1))
 
             outname = "out_pickles/{0}_{1}.pkl".format(dname,hname)
             outdict = { "good_rows" : good_rows,
-                        "layer_sizes": layers,
-                        "final_loss": l,
+                        "layer_sizes": layer_sizes,
+                        "final_loss": loss,
                         "weights" : weights_asnp,
                         "biases" : biases_asnp,
                         "sse_array" : sses,
@@ -143,8 +97,10 @@ for dname,hname in hists:
                         "thresh_10pct": np.percentile(sses, 90),
                         }
 
-            if l < minloss:
-                minloss = l
+            if loss < minloss:
+                minloss = loss
                 mindict = outdict
+
+            print("Mem usage after train:", process.memory_info().rss/1e6)
 
     pickle.dump(mindict, open(outname, 'wb'))
