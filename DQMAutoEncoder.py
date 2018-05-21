@@ -70,7 +70,10 @@ class DQMAutoEncoder:
 
         return l
 
-    def run(self, sess, X):
-        res = sess.run(self.decoder, feed_dict={self.X: X})
+    def run(self, sess, X, justEncoder=False):
+        if justEncoder:
+            res = sess.run(self.encoder, feed_dict={self.X: X})
+        else:
+            res = sess.run(self.decoder, feed_dict={self.X: X})
         return res
 
