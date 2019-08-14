@@ -23,7 +23,7 @@ def evaluateRun(run, indir, outdir):
     for dname, hname in histDefs:
         _, good_rows, _, _ = pickle.load(open("hdata_pickles/{0}_{1}.pkl".format(dname, hname), 'rb'))
         nbins = good_rows.size
-        d = pickle.load(open("out_pickles/{0}_{1}.pkl".format(dname, hname), 'rb'))
+        d = pickle.load(open("../tf_test/out_pickles/{0}_{1}.pkl".format(dname, hname), 'rb'))
         hdata, _, _, n_ent = utils.readHistsFromFiles(indir, hpath.format(dname,hname), 10000, [run], good_rows)
         if hdata.size==0:
             continue
@@ -123,12 +123,15 @@ def makeRunDirectoryPage(outdir, jsondir, run_info_file):
 
 if __name__=="__main__":
 
-    # for f in glob.glob("/nfs-6/userdata/bemarsh/CSC_DQM/Run2018/SingleMuon/*.root"):
-    #     run = f.split("/")[-1].split(".")[0]
-    #     print run
-    #     evaluateRun(run, 
-    #                 "/nfs-6/userdata/bemarsh/CSC_DQM/Run2018/SingleMuon/", 
-    #                 "/home/users/bemarsh/public_html/dump/DQMML_test/runs")
+    for f in glob.glob("/nfs-6/userdata/bemarsh/CSC_DQM/Run2018/SingleMuon/*.root"):
+        run = f.split("/")[-1].split(".")[0]
+        outdir = "/home/users/bemarsh/public_html/dump/DQMML_test/runs"
+        # if os.path.exists(os.path.join(outdir, str(run))):
+        #     continue
+        print run
+        evaluateRun(run, 
+                    "/nfs-6/userdata/bemarsh/CSC_DQM/Run2018/SingleMuon/", 
+                    "/home/users/bemarsh/public_html/dump/DQMML_test/runs")
 
     makeRunDirectoryPage("/home/users/bemarsh/public_html/dump/DQMML_test/runs",
                          "/home/users/bemarsh/public_html/dump/DQMML_test/runs/jsons",

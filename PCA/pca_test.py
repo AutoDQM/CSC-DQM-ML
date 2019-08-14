@@ -14,31 +14,36 @@ import utils
 drawPlots=False
 run_info = json.load(open('../../run_info.json'))
 
-# dname, hname = "Digis", "hWireTBin_p11b"
+dname, hname = "Digis", "hWireTBin_p11b"
+# dname, hname = "Digis", "hWireTBin_p32"
 # dname, hname = "recHits", "hRHTimingm22"
 # dname, hname = "recHits", "hRHTimingAnodep21"
 # dname, hname = "recHits", "hRHSumQm11a"
 # dname, hname = "Segments", "hSnSegments"
 # dname, hname = "PedestalNoise", "hStripPedMEm21"
 # dname, hname = "Segments", "hSTimeCathode"
-dname, hname = "Segments", "hSTimeCombined"
+# dname, hname = "Segments", "hSTimeCombined"
 # dname, hname = "Segments", "hSGlobalTheta"
+# dname, hname = "Segments", "hSGlobalPhi"
 # dname, hname = "Resolution", "hSResidp12"
 # dname, hname = "BXMonitor", "hCLCTL1A"
 # dname, hname = "recHits", "hRHnrechits"
 
-harray, _, runs, _ = utils.GetHistData(dname, hname, entry_cut=10000)
-harray_all, _, runs_all, _ = utils.GetHistData(dname, hname, entry_cut=1)
+year = 2017
 
-harray18, _, runs18, _ = utils.GetHistData(dname, hname, entry_cut=10000, year=2018)
-harray18_all, _, runs18_all, _ = utils.GetHistData(dname, hname, entry_cut=1, year=2018)
+harray, _, runs, nentries = utils.GetHistData(dname, hname, entry_cut=10000, year=year, force_reload=False)
+harray_all, _, runs_all, nentries_all = utils.GetHistData(dname, hname, entry_cut=10000, year=year, force_reload=False)
 
-harray = np.append(harray, harray18, axis=0)
-harray_all = np.append(harray_all, harray18_all, axis=0)
-runs = np.append(runs, runs18)
-runs_all = np.append(runs_all, runs18_all)
+# harray18, _, runs18, _ = utils.GetHistData(dname, hname, entry_cut=10000, year=2018)
+# harray18_all, _, runs18_all, _ = utils.GetHistData(dname, hname, entry_cut=1, year=2018)
+
+# harray = np.append(harray, harray18, axis=0)
+# harray_all = np.append(harray_all, harray18_all, axis=0)
+# runs = np.append(runs, runs18)
+# runs_all = np.append(runs_all, runs18_all)
 
 try:
+    raise Exception()
     bad_runs = [int(x) for x in open("../../tf_test/bad_runs/{0}_{1}".format(dname, hname)).readlines()]
 except:
     bad_runs = []
@@ -95,7 +100,7 @@ dists = np.linalg.norm(xformed_all - np.tile(center, xformed_all.shape[0]).resha
 print np.mean(sses)
 
 if drawPlots:
-    outdir = "/home/users/bemarsh/public_html/dump/DQMML_test/pca_{0}_{1}".format(dname, hname)
+    outdir = "/home/users/bemarsh/public_html/dump/DQMML_test/pca_{0}_{1}_{2}".format(year, dname, hname)
     os.system("mkdir -p "+outdir)
     os.system("mkdir -p "+outdir+"/aux")
     os.system("cp ~/scripts/index.php "+outdir)
@@ -129,7 +134,8 @@ if drawPlots:
         text.DrawLatexNDC(0.7, 0.60, "{0:.3f}".format(xformed_all[i,0]))
         text.DrawLatexNDC(0.7, 0.55, "{0:.3f}".format(xformed_all[i,1]))
         text.DrawLatexNDC(0.7, 0.50, "{0:.3f}".format(xformed_all[i,2]))
-        text.DrawLatexNDC(0.7, 0.45, "{0:.0f}".format(lumis_all[i]))
+        # text.DrawLatexNDC(0.7, 0.45, "{0:.0f}".format(lumis_all[i]))
+        text.DrawLatexNDC(0.7, 0.45, "{0:.0f}".format(nentries_all[i]))
     
         c.SaveAs("{0}/{1}.png".format(outdir, runs_all[i]))
     
@@ -180,15 +186,21 @@ plt.figure()
 good_scores = []
 bad_scores = []
 scores = sses
+worst_highstats_run = 0
+worst_highstats_sse = 0
 for i in range(len(runs_all)):
     if runs_all[i] in bad_runs:
         bad_scores.append(scores[i])
     else:
         good_scores.append(scores[i])
+    if runs_all[i] in runs and scores[i] > worst_highstats_sse:
+        worst_highstats_run = runs_all[i]
+        worst_highstats_sse = scores[i]
 good_scores = np.array(good_scores)
 bad_scores = np.array(bad_scores)
 fpr = 1.0*np.sum(good_scores >= np.amin(bad_scores)) / good_scores.size if bad_scores.size>0 else 0.0
 print("FPR:", fpr)
+print("Worst high-stats run:", worst_highstats_run)
 
 pcts = [1,2,5,10]
 threshs = [np.percentile(scores, 100-pct) for pct in pcts]

@@ -1,9 +1,6 @@
 from __future__ import division, print_function, absolute_import
 import sys, os, psutil
-try:
-    sys.path.remove('/home/users/bemarsh/.local/lib/python2.7/site-packages/matplotlib-1.4.3-py2.7-linux-x86_64.egg')
-except:
-    pass
+sys.path.append("../common")
 import cPickle as pickle
 import time
 import ROOT
@@ -15,7 +12,7 @@ import utils
 from histDefs import histDefs as hists
 from DQMAutoEncoder import DQMAutoEncoder
 
-indir = "/nfs-6/userdata/bemarsh/CSC_DQM/Run2017/SingleMuon/"
+indir = "/nfs-6/userdata/bemarsh/CSC_DQM/Run2018/SingleMuon/"
 
 min_train_entries = 10000
 learning_rate = 0.01
@@ -34,13 +31,16 @@ print("Mem usage start:", process.memory_info().rss/1e6)
 for dname,hname in hists:
     print("Training {0}/{1}".format(dname, hname))
 
-    pkl_name = "hdata_pickles/{0}_{1}.pkl".format(dname, hname)
+    old_pkl_name = "hdata_pickles/2017/{0}_{1}.pkl".format(dname, hname)
+    pkl_name = "hdata_pickles/2018/{0}_{1}.pkl".format(dname, hname)
     if not os.path.exists(pkl_name):
         hstr = "DQMData/Run {{}}/CSC/Run summary/CSCOfflineMonitor/{0}/{1}".format(dname,hname)
         harray, good_rows, runs, n_entries = utils.readHistsFromFiles(indir, hstr, min_entries=min_train_entries)
         pickle.dump((harray, good_rows, runs, n_entries), open(pkl_name, 'wb'))
     else:
         harray, good_rows, runs, n_entries = pickle.load(open(pkl_name, 'rb'))
+
+    continue
 
     print("Mem usage after harray load:", process.memory_info().rss/1e6)
 

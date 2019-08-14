@@ -62,7 +62,8 @@ histDefs = [
     ("recHits", "hRHTimingAnodep41"),
     ("recHits", "hRHTimingAnodep42"),
     ("Segments", "hSnSegments"),
-    # ("recHits", "hRHnrechits")
+    ("Segments", "hSnhits"),
+    ("recHits", "hRHnrechits"),
     ("recHits", "hRHSumQm11a"),
     ("recHits", "hRHSumQm11b"),
     ("recHits", "hRHSumQm12"),
@@ -146,8 +147,8 @@ histDefs = [
     ("Segments", "hSGlobalPhi"),
     ("Segments", "hSGlobalTheta"),
     ("Segments", "hSChiSq"),
-    # ("Segments", "hSTimeCathode"),
-    # ("Segments", "hSTimeCombined"),
+    ("Segments", "hSTimeCathode"),
+    ("Segments", "hSTimeCombined"),
     ("BXMonitor", "hCLCTL1A"),
     ]
 
