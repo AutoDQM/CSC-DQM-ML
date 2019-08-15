@@ -31,7 +31,7 @@ def read_hists_from_files(indir, hpath, runs_to_get=None, max_bins=None):
     if hists.size==0:
         return hists, np.array([])
 
-    return hists, runs
+    return hists, np.array(runs)
 
 # get array of histogram contents
 def load_hist_data(dname, hname, pkl_dir="data", year=2017, raw_dir="/nfs-6/userdata/bemarsh/CSC_DQM/Run{0}/SingleMuon", force_reload=False, max_bins=None, lumi_json=None):
@@ -60,37 +60,8 @@ def load_hist_data(dname, hname, pkl_dir="data", year=2017, raw_dir="/nfs-6/user
                         lumis.append((A-B)/np.log(A/B))
                 else:
                     lumis.append(0)
-            extra_info["lumis"] = lumis
+            extra_info["lumis"] = np.array(lumis)
         hc = HistCollection(harray, extra_info=extra_info)
         pickle.dump(hc, open(pkl_name, 'wb'), protocol=-1)
         return hc
-
-
-########### OLD ################
-
-# def evaluateAE(inp, weights, biases):
-#     nlayers = len(weights) / 2
-#     res = np.array(inp)
-#     if len(res.shape)==1:
-#         res = res.reshape(1, res.size)
-#     nsamp = res.shape[0]
-#     for i in range(nlayers):
-#         res = np.dot(res, weights["encoder_h"+str(i)])
-#         res += np.tile(biases["encoder_b"+str(i)], nsamp).reshape(res.shape)
-#         res = 1.0 / (1.0 + np.exp(-res))
-#     for i in range(nlayers):
-#         res = np.dot(res, weights["decoder_h"+str(i)])
-#         res += np.tile(biases["decoder_b"+str(i)], nsamp).reshape(res.shape)
-#         res = 1.0 / (1.0 + np.exp(-res))
-
-#     return res.reshape(inp.shape)
-
-# if __name__=="__main__":
-#     hists,good_rows,runs,n_entries = readHistsFromFiles("/nfs-6/userdata/bemarsh/CSC_DQM/Run2017/SingleMuon/",
-#                                                         "DQMData/Run {}/CSC/Run summary/CSCOfflineMonitor/recHits/hRHTimingAnodem11a",
-#                                                         )
-#     print hists.shape
-#     print good_rows
-#     print len(runs)
-#     print len(n_entries)
 
