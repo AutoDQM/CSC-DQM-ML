@@ -14,14 +14,14 @@ import utils
 drawPlots=False
 run_info = json.load(open('../../run_info.json'))
 
-dname, hname = "Digis", "hWireTBin_p11b"
+# dname, hname = "Digis", "hWireTBin_p11b"
 # dname, hname = "Digis", "hWireTBin_p32"
 # dname, hname = "recHits", "hRHTimingm22"
 # dname, hname = "recHits", "hRHTimingAnodep21"
 # dname, hname = "recHits", "hRHSumQm11a"
 # dname, hname = "Segments", "hSnSegments"
 # dname, hname = "PedestalNoise", "hStripPedMEm21"
-# dname, hname = "Segments", "hSTimeCathode"
+dname, hname = "Segments", "hSTimeCathode"
 # dname, hname = "Segments", "hSTimeCombined"
 # dname, hname = "Segments", "hSGlobalTheta"
 # dname, hname = "Segments", "hSGlobalPhi"
