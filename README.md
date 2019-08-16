@@ -86,7 +86,7 @@ the blue (first) component controls the size of the main peak relative to the si
 a direct function of the instantaneous luminosity of the run. The second component controls slight horizontal
 shifts in the peak locations. This has to do with the CSC timing calibration.
 <p align="center">
-<img src="./images/hist_sses.png" alt="scatter plot of a PCA-transformed set of DQM histograms" width="400"/>
+<img src="./images/comp_breakdown.png" alt="scatter plot of a PCA-transformed set of DQM histograms" width="400"/>
 </p>
 
 * The final plot shows the SSE distribution (this time for the `Digis_hWireTBin_p11b` histogram). In red are
