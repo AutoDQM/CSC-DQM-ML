@@ -9,11 +9,11 @@ from dqmml.DQMPCA import *
 import utils
 
 # Which CSC histogram should we use?
-dname, hname = "Segments", "hSTimeCathode"
+dname, hname = "Segments", "hSTimeCombined"
 # dname, hname = "Digis", "hWireTBin_p11b"
 
 # Load in histogra data. If the pickle file doesn't exist yet, load from raw DQM ROOT files and save
-hc = utils.load_hist_data(dname, hname, lumi_json="run_info.json")
+hc = utils.load_hist_data(dname, hname, pkl_dir="data/test", lumi_json="run_info.json")
 
 # create a DQMPCA object and train on the histogram data
 # Use only histograms with >10000 entries

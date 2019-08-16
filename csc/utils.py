@@ -41,8 +41,8 @@ def read_hists_from_files(indir, hpath, runs_to_get=None, max_bins=None):
     return hists, np.array(runs)
 
 # get array of histogram contents
-def load_hist_data(dname, hname, pkl_dir="data", year=2017, raw_dir="/nfs-6/userdata/bemarsh/CSC_DQM/Run{0}/SingleMuon", force_reload=False, max_bins=None, lumi_json=None):
-    pkl_dir = os.path.join(pkl_dir, str(year))
+def load_hist_data(dname, hname, pkl_dir="data/{0}", year=2017, raw_dir="/nfs-6/userdata/bemarsh/CSC_DQM/Run{0}/SingleMuon", force_reload=False, max_bins=None, lumi_json=None):
+    pkl_dir = pkl_dir.format(year)
     pkl_name = os.path.join(pkl_dir, "{0}_{1}.pkl".format(dname, hname))
     if not force_reload and os.path.exists(pkl_name):
         return pickle.load(open(pkl_name, 'rb'))
