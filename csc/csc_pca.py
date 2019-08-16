@@ -5,15 +5,15 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 sys.path.append("..")
 from dqmml.HistCollection import *
-from dqmml.PCA import *
+from dqmml.DQMPCA import *
 import utils
 
 # Which CSC histogram should we use?
-# dname, hname = "Segments", "hSTimeCathode"
-dname, hname = "Digis", "hWireTBin_p11b"
+dname, hname = "Segments", "hSTimeCathode"
+# dname, hname = "Digis", "hWireTBin_p11b"
 
 # Load in histogra data. If the pickle file doesn't exist yet, load from raw DQM ROOT files and save
-hc = utils.load_hist_data(dname, hname, lumi_json="../../run_info.json")
+hc = utils.load_hist_data(dname, hname, lumi_json="run_info.json")
 
 # create a DQMPCA object and train on the histogram data
 # Use only histograms with >10000 entries
@@ -83,6 +83,8 @@ hist2, = ax0.plot(xvals, yvals2, 'r-')
 hist3, = ax0.plot(xvals, yvals3, 'g-')
 histt, = ax0.plot(xvals, yvalst, 'r--', linewidth=2)
 
+# Make histogram of scores. Plot "bad runs" in red if these have been defined
+
 try:
     bad_runs = [int(x) for x in open("bad_runs/{0}_{1}".format(dname, hname)).readlines()]
 except:
@@ -104,5 +106,37 @@ print("FPR:", fpr)
 
 plt.hist(good_scores, bins=50, range=(0, np.amax(scores)+0.05), histtype='stepfilled', color='g', alpha=0.5)
 plt.hist(bad_scores, bins=50, range=(0, np.amax(scores)+0.05), histtype='stepfilled', color='r', alpha=0.5)
+
+# Clicking on the 2D plot of transformed values will update the component histograms in fig2
+
+def onclick(event):
+    if event.xdata==None:
+        return
+    if event.inaxes is not ax2d:
+        return
+    # print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
+    #       ('double' if event.dblclick else 'single', event.button,
+    #        event.x, event.y, event.xdata, event.ydata))
+    ixf = pca.inverse_transform([[event.xdata, event.ydata, 0]])
+
+    yvals1[0::2] = dim1[0,:]*event.xdata
+    yvals1[1::2] = dim1[0,:]*event.xdata
+    yvals2[0::2] = dim2[0,:]*event.ydata
+    yvals2[1::2] = dim2[0,:]*event.ydata
+    yvals3[0::2] = dim3[0,:]*0
+    yvals3[1::2] = dim3[0,:]*0
+    yvalst[0::2] = ixf[0, :]
+    yvalst[1::2] = ixf[0, :]
+
+    hist1.set_ydata(yvals1)
+    hist2.set_ydata(yvals2)
+    hist3.set_ydata(yvals3)
+    histt.set_ydata(yvalst)
+
+    fig2.canvas.draw()
+    fig2.canvas.flush_events()
+
+cid = fig1.canvas.mpl_connect('button_press_event', onclick)
+
 
 plt.show()

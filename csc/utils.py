@@ -27,6 +27,13 @@ def read_hists_from_files(indir, hpath, runs_to_get=None, max_bins=None):
 
         fin.Close()
 
+    # make rows even length if jagged
+    lens = [len(row) for row in hists]
+    maxlen = np.amax(lens)
+    if maxlen != np.amin(lens):
+        for i in range(len(hists)):
+            hists[i] += [0]*(maxlen - len(hists[i]))
+
     hists = np.array(hists)
     if hists.size==0:
         return hists, np.array([])
