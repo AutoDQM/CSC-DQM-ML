@@ -115,7 +115,8 @@ class HistCleaner(object):
 class HistCollection(object):
     """Store a collection of cleaned histograms for use in ML algorithms."""
 
-    def __init__(self, hdata, normalize=True, remove_identical_bins=True, extra_info=None):
+    def __init__(self, hdata, normalize=True, remove_identical_bins=True, extra_info=None, 
+                 hist_cleaner=None):
         """
         Initialize the HistCollection.
         
@@ -134,7 +135,10 @@ class HistCollection(object):
 
         self.norms = np.sum(hdata, axis=1)
 
-        self.__hist_cleaner = HistCleaner(normalize, remove_identical_bins)
+        if hist_cleaner is not None:
+            self.__hist_cleaner = hist_cleaner
+        else:
+            self.__hist_cleaner = HistCleaner(normalize, remove_identical_bins)
         self.__hist_cleaner.fit(self.hdata)
         self.hdata = self.__hist_cleaner.transform(self.hdata)
 
