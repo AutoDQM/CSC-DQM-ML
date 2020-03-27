@@ -15,6 +15,7 @@ def read_hists_from_files(indir, hpath, runs_to_get=None, max_bins=None):
         fnames = glob.glob(indir+"/*.root")
     else:
         fnames = ["{0}/{1}.root".format(indir, run) for run in runs_to_get]
+    title = None
     for fname in fnames:
         run = int(fname.split("/")[-1].split(".")[0])
         # print run
@@ -24,6 +25,9 @@ def read_hists_from_files(indir, hpath, runs_to_get=None, max_bins=None):
         nbins = h.GetNbinsX() if max_bins==None else min(h.GetNbinsX(), max_bins)
         hists.append([h.GetBinContent(i) for i in range(1, nbins+1)])
         runs.append(run)
+
+        if title is None:
+            title = h.GetTitle()
 
         fin.Close()
 
@@ -38,22 +42,26 @@ def read_hists_from_files(indir, hpath, runs_to_get=None, max_bins=None):
     if hists.size==0:
         return hists, np.array([])
 
-    return hists, np.array(runs)
+    return hists, np.array(runs), title
 
 # get array of histogram contents
-def load_hist_data(dname, hname, pkl_dir="data/{0}", year=2017, raw_dir="/nfs-6/userdata/bemarsh/CSC_DQM/Run{0}/SingleMuon", force_reload=False, max_bins=None, lumi_json=None):
+def load_hist_data(dname, hname, pkl_dir="data/{0}", year=2017, raw_dir="/nfs-7/userdata/bemarsh/CSC_DQM/Run{0}/SingleMuon", force_reload=False, max_bins=None, lumi_json=None):
     pkl_dir = pkl_dir.format(year)
     pkl_name = os.path.join(pkl_dir, "{0}_{1}.pkl".format(dname, hname))
     if not force_reload and os.path.exists(pkl_name):
-        return pickle.load(open(pkl_name, 'rb'))
+        with open(pkl_name, 'rb') as fid:
+            ret = pickle.load(fid)
+        return ret
     else:
         os.system("mkdir -p "+pkl_dir)
         hstr = "DQMData/Run {{}}/CSC/Run summary/CSCOfflineMonitor/{0}/{1}".format(dname, hname)
         indir = raw_dir.format(year)
-        harray, runs = read_hists_from_files(indir, hstr, max_bins=max_bins)
+        harray, runs, title = read_hists_from_files(indir, hstr, max_bins=max_bins)
         extra_info = {"runs":runs}
+        extra_info["title"]  = title
         if lumi_json is not None:
-            ri = json.load(open(lumi_json, 'rb'))
+            with open(lumi_json, 'rb') as fid:
+                ri = json.load(fid)
             lumis = []
             for run in runs:
                 if str(run) in ri:
@@ -69,6 +77,7 @@ def load_hist_data(dname, hname, pkl_dir="data/{0}", year=2017, raw_dir="/nfs-6/
                     lumis.append(0)
             extra_info["lumis"] = np.array(lumis)
         hc = HistCollection(harray, extra_info=extra_info)
-        pickle.dump(hc, open(pkl_name, 'wb'), protocol=-1)
+        with open(pkl_name, 'wb') as fid:
+            pickle.dump(hc, fid, protocol=-1)
         return hc
 

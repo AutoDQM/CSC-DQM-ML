@@ -5,14 +5,15 @@ from sklearn.pipeline import Pipeline
 from HistCollection import *
 
 class DQMPCA(object):
-    def __init__(self, use_standard_scaler=False):
+    """Class to perform PCA specifically on HistCollection objects"""
+
+    def __init__(self, use_standard_scaler=False, norm_cut=10000, sse_ncomps=None):
         """Initialize the DQMPCA
 
         -use_standard_scalar determines whether to use standard scaling
           (zero mean, unit stdev) before feeding into a PCA. This helps
           for some histograms, but hurts for others
         """
-        self.use_standard_scaler = use_standard_scaler
         if use_standard_scaler:
             self.pca = Pipeline(
                 ("scaler", StandardScaler()),
@@ -21,54 +22,74 @@ class DQMPCA(object):
         else:
             self.pca = PCA()
 
-        self.is_fit = False
+        self.use_standard_scaler = use_standard_scaler
+        self.norm_cut = norm_cut
+        self.sse_ncomps = sse_ncomps
 
-    def fit(self, hdata, norm_cut=0, sse_ncomps=None):
+        self.__is_fit = False
+
+    @property
+    def sse_ncomps(self):
+        return self.__sse_ncomps
+
+    @sse_ncomps.setter
+    def sse_ncomps(self, sse):
+        if sse is not None and not isinstance(sse, tuple) and not isinstance(sse, list):
+            raise Exception("illigal sse_ncomps value. Should be None or a list/tuple of ints")
+        self.__sse_ncomps = sse
+
+    def _check_fit(self):
+        if not self.__is_fit:
+            raise Exception("Must fit the DQMPCA before calling transform")
+
+    def fit(self, hdata):
         if isinstance(hdata, HistCollection):
-            self.hist_cleaner = hdata.hist_cleaner
+            self._hist_cleaner = hdata.hist_cleaner
             cleaned = hdata.hdata
             norms = hdata.norms
         else:
-            self.hist_cleaner = HistCleaner()
-            hist_cleaner.fit(hdata)
-            cleaned = hist_cleaner.transform(hdata)
+            self._hist_cleaner = HistCleaner()
+            self._hist_cleaner.fit(hdata)
+            cleaned = self._hist_cleaner.transform(hdata)
             norms = np.sum(cleaned, axis=1)
 
-        cleaned = cleaned[norms>norm_cut, :]
+        cleaned = cleaned[norms>self.norm_cut, :]
         self.pca.fit(cleaned)        
-        if sse_ncomps is not None:
+        self.__is_fit = True
+
+        if self.sse_ncomps is not None:
             self.sse_cuts = {}
-            for ncomp in sse_ncomps:
+            for ncomp in self.sse_ncomps:
                 self.sse_cuts[ncomp] = []
                 sses = self.sse(cleaned, ncomp)
                 for pct in np.arange(1,101):
                     self.sse_cuts[ncomp].append(np.percentile(sses, pct))
-
-        self.is_fit = True
     
     def transform(self, hdata):
         """Transform a set of histograms with the trained PCA"""
+        self._check_fit()
         if isinstance(hdata, HistCollection):
             cleaned = hdata.hdata
         else:
-            cleaned = self.hist_cleaner.transform(hdata)        
+            cleaned = self._hist_cleaner.transform(hdata)        
         return self.pca.transform(cleaned)
         
     def inverse_transform(self, xf, n_components=3, restore_bad_bins=False):
+        self._check_fit()
         xf = np.array(xf)
-        trunc = np.zeros((xf.shape[0], self.hist_cleaner.n_good_bins))
+        trunc = np.zeros((xf.shape[0], self._hist_cleaner.n_good_bins))
         trunc[:,:n_components] = xf[:,:n_components]
         ixf = self.pca.inverse_transform(trunc)
         if not restore_bad_bins:
             return ixf
         else:
-            return self.hist_cleaner.restore_bad_bins(ixf)
+            return self._hist_cleaner.restore_bad_bins(ixf)
 
     def sse(self, hdata, n_components=3):
         if isinstance(hdata, HistCollection):
             cleaned = hdata.hdata
         else:
-            cleaned = self.hist_cleaner.transform(hdata)        
+            cleaned = self._hist_cleaner.transform(hdata)        
         xf = self.transform(cleaned)
         ixf = self.inverse_transform(xf, n_components=n_components)
         return np.sqrt(np.sum((ixf-cleaned)**2, axis=1))
