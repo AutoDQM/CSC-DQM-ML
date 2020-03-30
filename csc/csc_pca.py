@@ -17,8 +17,8 @@ hc = utils.load_hist_data(dname, hname, pkl_dir="data/test", lumi_json="run_info
 
 # create a DQMPCA object and train on the histogram data
 # Use only histograms with >10000 entries
-pca = DQMPCA()
-pca.fit(hc, norm_cut=10000, sse_ncomps=(1,2,3))
+pca = DQMPCA(norm_cut=10000, sse_ncomps=(1,2,3))
+pca.fit(hc)
 
 # Compute the number of components to use for SSE/score calculation (lowest # that explains >95% of variance)
 evr = pca.explained_variance_ratio
@@ -31,12 +31,13 @@ sses = pca.sse(hc, n_components=ncomp)
 scores = pca.score(hc, n_components=ncomp)
 
 # Throw away low stats histograms
-xf = xf[hc.norms>10000, :]
-ixf = ixf[hc.norms>10000, :]
-sses = sses[hc.norms>10000]
-scores = scores[hc.norms>10000]
-lumis = hc.extra_info["lumis"][hc.norms>10000]
-runs = hc.extra_info["runs"][hc.norms>10000]
+goodrows = hc.norms>10000
+xf = xf[goodrows, :]
+ixf = ixf[goodrows, :]
+sses = sses[goodrows]
+scores = scores[goodrows]
+lumis = hc.extra_info["lumis"][goodrows]
+runs = hc.extra_info["runs"][goodrows]
 
 # 3D plot of first 3 transformed components, colored by run #
 fig1 = plt.figure(figsize=plt.figaspect(0.5))

@@ -56,8 +56,8 @@ hc = utils.load_hist_data(dname, hname, lumi_json="run_info.json")
 (to avoid contaminating with useless low-stats runs). Tell it to save SSE distributions for 1, 2,
 and 3 reduced dimensions.
 ```python
-pca = DQMPCA()
-pca.fit(hc, norm_cut=10000, sse_ncomps=(1,2,3))
+pca = DQMPCA(norm_cut=10000, sse_ncomps=(1,2,3))
+pca.fit(hc)
 ```
 * Determine how many components the "reduced" space should have. Here we use the number
 required to explain >95% of the variance, capped at 3.
